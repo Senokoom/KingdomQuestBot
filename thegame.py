@@ -2,6 +2,8 @@ from random import *
 import logging
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, Application, ContextTypes, MessageHandler, filters
+import test_bot
+import classes
 
 
 logging.basicConfig(
@@ -34,11 +36,21 @@ states.append(state_addcount)
 
 
 class game:
-    def __init__(self, user, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    def __init__(self, user, database, application, update, context):
         self.user = user
+        self.application = application
+        self.manager = database
         self.context = context
         self.update = update
     
     def play(self):
-        reply_markup = ReplyKeyboardMarkup(states[self.user['state']].buttons, resize_keyboard=True)
-        self.update.message.reply_text(states[self.user['state']].text, reply_markup=reply_markup)
+        user = self.user
+        context = self.context 
+        update = self.update
+        manager = self.manager
+        counter = user['count']
+        while counter != 110:
+            context.bot.send_message(update.effective_chat.id, text = f"Прибавили к {counter}: 10.\nПолучилось {counter+10} ")
+            manager.update_user_count(user['tgid'], counter+10)
+            counter+=10
+            

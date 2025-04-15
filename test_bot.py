@@ -94,15 +94,22 @@ async def plus(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
-def play(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = manager.get_or_create_user(update.effective_user.id)
-    game = thegame.game(
-        user, 
-        update,
-        context
-    )
-    game.play()
-
+async def play(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # game = thegame.game(
+    #     user, 
+    #     manager,
+    #     application,
+    #     update,
+    #     context
+    # )
+    # game.play()
+    manager.update_user_count(update.effective_user.id, 0)
+    do:
+        user = manager.get_or_create_user(update.effective_user.id)
+        await context.bot.send_message(update.effective_chat.id, text = f"Прибавили к {counter}: 10.\nПолучилось {counter+10} ")
+        manager.update_user_count(update.effective_user.id, counter+10)
+        counter+=10
+    while(user['count'] != 110)
 
 
 
