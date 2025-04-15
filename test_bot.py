@@ -104,12 +104,15 @@ async def play(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # )
     # game.play()
     manager.update_user_count(update.effective_user.id, 0)
-    do:
+    while True:
         user = manager.get_or_create_user(update.effective_user.id)
         await context.bot.send_message(update.effective_chat.id, text = f"Прибавили к {counter}: 10.\nПолучилось {counter+10} ")
         manager.update_user_count(update.effective_user.id, counter+10)
         counter+=10
-    while(user['count'] != 110)
+        if user['count'] == 110:
+            break
+    await context.bot.send_message(update.effective_chat.id, text = f"Получилось число {user['count']}, я вышел из цикла :)")
+
 
 
 
