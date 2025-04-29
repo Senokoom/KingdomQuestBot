@@ -9,6 +9,11 @@ from mysql.connector import Error
 #         self.changer_log = []
 #         self.botstarted = False
 
+# class state:
+#     def __init__(self, ):
+        
+
+
 class MySQLDataBase:
     def __init__(self, host, port, database, user, password):
         self.host = host

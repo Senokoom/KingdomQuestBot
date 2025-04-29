@@ -2,6 +2,7 @@ from random import *
 import logging
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, Application, ContextTypes, MessageHandler, filters
+from transitions import Machine
 import test_bot
 import classes
 
@@ -43,16 +44,3 @@ class game:
         manager = self.manager
         user = manager.get_or_create_user(update.effective_user.id)
         counter = user['count']
-        match counter:
-            case 10:
-                await context.bot.send_message(update.effective_chat.id, f"Ваше число {counter} мизерное")
-            case 20:
-                await context.bot.send_message(update.effective_chat.id, f"Ваше число {counter} маленькое")
-            case 30:
-                await context.bot.send_message(update.effective_chat.id, f"Ваше число {counter} средненькое")
-            case 40:
-                await context.bot.send_message(update.effective_chat.id, f"Ваше число {counter} огромное")
-            case 50:
-                await context.bot.send_message(update.effective_chat.id, f"Ваше число {counter} оч большое")
-            case _:
-                await context.bot.send_message(update.effective_chat.id, f"Ваше число {counter} вообще другое")
