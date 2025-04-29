@@ -96,6 +96,7 @@ async def plus(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def play(update: Update, context: ContextTypes.DEFAULT_TYPE):
     #manager.update_user_count(update.effective_user.id, 0)
     game = thegame.game(
+        application,
         manager,
         update,
         context
