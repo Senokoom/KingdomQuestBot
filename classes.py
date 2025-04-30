@@ -11,7 +11,6 @@ from mysql.connector import Error
 
 # class state:
 #     def __init__(self, ):
-        
 
 
 class MySQLDataBase:
