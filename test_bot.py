@@ -1,9 +1,8 @@
 from random import *
 import logging
-from telegram import Update
-from telegram.ext import CommandHandler, Application, ContextTypes, MessageHandler, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telegram.ext import CommandHandler, Application, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 import classes
-import thegame
 
 TestBotAPI_Token = "7861786407:AAHxk0wOV7Tt9JCO3MdFbpxFJNBlw8vGVPM"
 # user_data = []
@@ -15,29 +14,86 @@ logging.basicConfig(
 )
 
 
-# def UserFinder(user_id):
-#     print(f"Поиск: {user_id}")
-#     for user in user_data:
-#         if(user_id == user.id):
-#             print("Нашёл")
-#             return user
-#     print("Такого нет")
-#     return False
 
 
-# def CheckUserInSystem(user_id): #сюда на вход поступает id пользователя
-#     print(f"Существует ли: {user_id}")
-#     for user in user_data:
-#         if(user_id == user.id):
-#             print("уже у нас, сворачиваемся")
-#             return True #user already in userdata, no need to worry
-#     try:
-#         user_data.append(classes.user(user_id))
-#         print("Добавили")
-#         return True
-#     except:
-#         print("ошибочка получилась")
-#         return False
+class state:
+    def __init__(self, state_id, text, outcome, buttons, outtext, pic=None):
+        self.state_id = state_id
+        self.text = text
+        self.outcome = outcome
+        self.buttons = buttons
+        self.outtext = outtext
+
+
+#ЭТО БЫЛО РЕШЕНИЕ С ИСПОЛЬЗОВАНИЕМ INLINE КНОПОК. НЕ СРАБОТАЛО ИЗ-ЗА ПРОБЛЕМ С ПОЛУЧЕНИЕМ update (как я понял)
+
+# async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     query = update.callback_query
+#     query.answer()
+#     user = manager.find_user_by_tgid(update.effective_user.id)
+#     current_state = states[int(user['state'])]  #ТУТ из БД достается текущий state. Нужно добавить обновление
+#     manager.update_user_count(update.effective_user.id, int(user['count']) + current_state.outcome[int(query.data)])  #тут outcome
+#     await update.callback_query.edit_message_text(text = f"{current_state.outtext[int(query.data)]} {int(user['count']) + current_state.outcome[int(query.data)]}") #и тут по сути outtext
+#     await get_random_state(update)
+
+
+# async def get_random_state(update: Update):
+#     current_state = choice(states)
+#     manager.update_user_state(update.effective_user.id, states.index(current_state)) #тут закидывает в бдшку новый индекс state
+#     keyboard = []
+#     for x in range(len(current_state.buttons)):
+#         keyboard.append([InlineKeyboardButton(current_state.buttons[x], callback_data=f'{x}')])
+    
+#     await update.message.reply_text(
+#         current_state.text,
+#         reply_markup=InlineKeyboardMarkup(keyboard)
+#         )
+
+
+async def MessAns(update: Update, context: ContextTypes.DEFAULT_TYPE): #это handler reply. Вызывается, когда польз пишет что-то
+    
+    user = manager.find_user_by_tgid(update.effective_user.id)
+    current_state : state = states[int(user['state'])]  #ТУТ из БД достается текущий state
+    flag = False
+    try:
+        uwu = current_state.buttons.index(update.message.text)
+        outcome = current_state.outcome[uwu] #тут вложенный массив, т.к. потом будет проще изменять больше, чем 1 параметр
+        counter = outcome[0]
+        manager.update_user_count(update.effective_user.id, int(user['count']) + counter)  #тут outcome заносится в бд
+        flag = True
+    except:
+        await context.bot.send_message(update.effective_chat.id, text = "Incorrect input")
+    if(flag):
+        await context.bot.send_message(update.effective_chat.id, text = f"Ты молодец, {current_state.outtext[uwu]} {int(user['count']) + current_state.outcome[uwu][0]}")
+        await get_random_state(update)
+
+
+
+
+async def get_random_state(update: Update):
+    current_state = choice(states)
+    manager.update_user_state(update.effective_user.id, states.index(current_state)) #тут закидывает в бдшку новый индекс state
+    keyboard = [[x] for x in current_state.buttons]
+    keyboard.append(["/showcount"])
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    await update.message.reply_text(
+        current_state.text,
+        reply_markup=reply_markup
+    )
+
+
+
+states = []
+
+def createStates():
+        counter_state = state(
+            0,
+            "Число 10 к счетчику?",
+            [[10], [-10]],
+            ["Прибавить", "Убавить"],
+            ["Вы прибавили 10 к числу: ", "Вы убавили на 10 число: "]
+        )
+        states.append(counter_state)
 
 
 
@@ -50,9 +106,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="произошла ошибка, сорян")
 
+#ВЫВОДИТ ТЕКУЩИЙ count ЮЗЕРА
+async def showcount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    _user = manager.get_or_create_user(update.effective_user.id)
+    if _user != None:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=(f" Ваш текущий счетчик это: {_user['count']}!"))
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="произошла ошибка, сорян")
+
 #ФУНКЦИЯ ЭХО
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=update.message.text)
+#async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#    await context.bot.send_message(chat_id=update.effective_chat.id, text=update.message.text)
 
 #ФУНКЦИЯ КАПС
 async def caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -68,51 +132,16 @@ async def plus(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         num = sum(list(map(int, context.args)))
         manager.update_user_count(_user['tgid'], _user['count'] + num)
-        # _user.changer_log.append(f"Успешно добавили к числу {_user.changer-num}, число {num}")
         await context.bot.send_message(update.effective_chat.id, text=f"Изначально было число: {_user['count']}\nНо теперь оно: {_user['count']+num}")
     except:
         print(f"Не удалось к числу: {_user['count']} добавить: {inputed}")
-        # _user.changer_log.append(f"Не удалось добавить к числу {_user.changer}, число {inputed}")
         await context.bot.send_message(update.effective_chat.id, text=f"Произошла ошибка!!!\nНе удалось добавить {inputed}")
 
 
 
-
-#ФУКНЦИЯ ДЛЯ ПОЛУЧЕНИЯ ЛОГОВ ФУНКЦИИ ПЛЮС
-# async def changerlog(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     _user = manager.find_user_by_tgid(update.effective_user.id)
-#     output = ""
-#     if len(_user.changer_log) > 0:
-#         i = 1
-#         for x in _user.changer_log:
-#             output += f"{i}. {x}\n"
-#             i+=1
-#         await context.bot.send_message(update.effective_chat.id, text=output)
-#     else:
-#         await context.bot.send_message(update.effective_chat.id, text="Логи пусты. Действий с функцией 'plus' не было")
-
-
-
 async def play(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    #manager.update_user_count(update.effective_user.id, 0)
-    game = thegame.game(
-        application,
-        manager,
-        update,
-        context
-    )
-    await game.play()
-    # manager.update_user_count(update.effective_user.id, 0)
-    # counter = 0
-    # while True:
-    #     user = manager.get_or_create_user(update.effective_user.id)
-    #     if user['count'] == 110:
-    #         break
-    #     await context.bot.send_message(update.effective_chat.id, text = f"Прибавили к {counter}: 10.\nПолучилось {counter+10} ")
-    #     manager.update_user_count(update.effective_user.id, counter+10)
-    #     counter+=10
-    # await context.bot.send_message(update.effective_chat.id, text = f"Получилось число {user['count']}, я вышел из цикла :)")
-
+    createStates()
+    await get_random_state(update)
 
 
 # ЭТО ЗАПУСКАЕТСЯ, КОГДА ЗАПУСКАЮ КОД
@@ -129,18 +158,28 @@ if __name__ == '__main__':
 
     application = Application.builder().token(TestBotAPI_Token).build() #построили бота
 
-    echo_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), echo) #фильтрует, что сообщение это только текст и не команда
+    #echo_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), echo) #фильтрует, что сообщение это только текст и не команда
     start_handler = CommandHandler('start', start)
     caps_handler = CommandHandler('caps', caps)
     plus_handler = CommandHandler('plus', plus)
     play_handler = CommandHandler('play', play)
-    # changerLogs_handler = CommandHandler('Changerlog', changerlog)
+    answer_uwu_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, MessAns)
+    showcount_handler = CommandHandler('showcount', showcount)
+    
 
+    # changerLogs_handler = CommandHandler('Changerlog', changerlog)
     application.add_handler(start_handler)
-    application.add_handler(echo_handler)
+    #application.add_handler(echo_handler)
     application.add_handler(caps_handler)
     application.add_handler(plus_handler)
     application.add_handler(play_handler)
+    application.add_handler(showcount_handler)
+    application.add_handler(answer_uwu_handler)
     # application.add_handler(changerLogs_handler)
 
     application.run_polling()
+
+
+
+
+

@@ -89,6 +89,21 @@ class MySQLDataBase:
         return user
     
 
+    def update_user_state(self, tgid, new_state):
+        try: 
+            cursor = self.connection.cursor()
+            query = "UPDATE users SET state = %s WHERE tgid = %s"
+            cursor.execute(query, (new_state, tgid))
+            self.connection.commit()
+            affected_rows = cursor.rowcount
+            cursor.close()
+
+            return affected_rows > 0
+        except Error as e:
+            print(f"Произошла ошибка при обновлении state: {e}")
+            return False
+
+
     def update_user_count(self, tgid, new_count):
         try:
             cursor = self.connection.cursor()
