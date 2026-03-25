@@ -1,0 +1,5 @@
+database:
+    host: '185.9.147.4'
+    port: '3312'
+    database: 'kingdom'
+    user: 'leva'
